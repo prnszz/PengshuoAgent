@@ -8,6 +8,5 @@ langchain_chroma
 pypdf
 chromadb
 google-generativeai
-dotenv
 faiss-cpu
 
