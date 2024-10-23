@@ -158,7 +158,14 @@ def load_pdfs(pdf_files):
 @st.cache_resource
 def initialize_rag():
     try:
-        client = chromadb.PersistentClient(path="./chroma_db")
+        client = chromadb.PersistentClient(
+            path="./chroma_db",
+            settings=chromadb.config.Settings(
+                anonymized_telemetry=False,
+                is_persistent=True,
+                persist_directory="./chroma_db",
+            )
+        )
         pdf_files = glob.glob("*.pdf")
         all_docs = load_pdfs(pdf_files)
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)

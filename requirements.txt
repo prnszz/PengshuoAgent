@@ -12,3 +12,5 @@ rapidocr-onnxruntime
 chromadb
 google-generativeai
 protobuf<=3.20.3
+chromadb[duckdb]
+duckdb>=0.8.1
