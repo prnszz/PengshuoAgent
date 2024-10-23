@@ -3,22 +3,19 @@ import time
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from langchain_chroma import Chroma
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_community.vectorstores import FAISS
 from dotenv import load_dotenv
-import chromadb
 import os
 import glob
-# __import__('pysqlite3')
-# import sys
-# sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
 
 # 设置页面配置
 st.set_page_config(page_title="Chat with Pengshuo", layout="wide")
+
+
 
 # 自定义CSS样式
 import streamlit as st
@@ -131,22 +128,20 @@ load_dotenv()
 
 st.title("Try to ask something about Pengshuo 😃")
 
-# Initialize session state for chat history
+
+
+# Initialize session states
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
-# Add this line to initialize show_welcome
 if 'show_welcome' not in st.session_state:
     st.session_state.show_welcome = True
 
-
 def clear_chat_history():
-    """Clear the chat history from session state"""
     st.session_state.chat_history = []
     st.success("Chat history cleared!")
 
 def load_pdfs(pdf_files):
-    """Load multiple PDF files and return combined documents"""
     all_docs = []
     for pdf_file in pdf_files:
         try:
@@ -162,35 +157,27 @@ def load_pdfs(pdf_files):
 @st.cache_resource
 def initialize_rag():
     try:
-        client = chromadb.PersistentClient(
-            path="./chroma_db",
-            settings=chromadb.config.Settings(
-                anonymized_telemetry=False,
-                is_persistent=True,
-                persist_directory="./chroma_db",
-            )
-        )
+        # 加载PDF文件
         pdf_files = glob.glob("*.pdf")
         all_docs = load_pdfs(pdf_files)
+        
+        # 切分文档
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000)
         splits = text_splitter.split_documents(all_docs)
+        
+        # 初始化embeddings
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
-        collection_name = "pdf_collection"
         
-        vectorstore = Chroma(
-            client=client,
-            collection_name=collection_name,
-            embedding_function=embeddings
-        )
+        # 使用FAISS替代Chroma
+        vectorstore = FAISS.from_documents(splits, embeddings)
         
-        if len(vectorstore._collection.get()['ids']) == 0:
-            vectorstore.add_documents(splits)
-        
+        # 创建检索器
         retriever = vectorstore.as_retriever(
             search_type="similarity",
             search_kwargs={"k": 10}
         )
         
+        # 初始化LLM
         llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-pro",
             temperature=0,
@@ -203,6 +190,8 @@ def initialize_rag():
     except Exception as e:
         st.error(f"Error initializing RAG system: {str(e)}")
         raise e
+    
+
 
 # Initialize the system
 try:
