@@ -11,4 +11,4 @@ pypdf
 rapidocr-onnxruntime
 chromadb
 google-generativeai
-
+pysqlite3-binary
